@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Статус Phonebot</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #edf0f3;
+    --surface: #ffffff;
+    --ink: #101b2a;
+    --muted: #5b6877;
+    --line: #d5dbe2;
+    --empty: #dde2e8;
+    --g: #2db36a;
+    --y: #e7c12f;
+    --o: #f0862a;
+    --r: #e04848;
+    --font-body: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: "Unbounded", "Onest", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e141b;
+      --surface: #151d27;
+      --ink: #e8edf3;
+      --muted: #8d9aa8;
+      --line: #263241;
+      --empty: #223040;
+      --g: #35c479;
+      --y: #ebc93f;
+      --o: #f39a3f;
+      --r: #eb5b5b;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 16px/1.5 var(--font-body);
+    padding: max(20px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+  }
+  main { max-width: 640px; margin: 0 auto; }
+
+  .site { margin: 4px 0 28px; font-weight: 600; font-size: 15px; color: var(--muted); }
+
+  .hero { display: flex; gap: 14px; align-items: flex-start; }
+  .dot { flex: none; width: 16px; height: 16px; border-radius: 50%; margin-top: 11px; background: var(--empty); }
+  h1 {
+    margin: 0;
+    font: 700 clamp(26px, 7.4vw, 36px)/1.15 var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  .lead { margin: 10px 0 0; color: var(--muted); max-width: 52ch; }
+
+  .panel {
+    margin-top: 28px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .metric { padding: 18px 18px 14px; }
+  .metric + .metric { border-top: 1px solid var(--line); }
+  .row { display: flex; align-items: baseline; gap: 10px; }
+  .row .name { font-weight: 500; }
+  .row .leader { flex: 1; border-bottom: 2px dotted var(--line); transform: translateY(-4px); min-width: 12px; }
+  .row .val { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .strip { display: flex; gap: 2px; height: 30px; margin-top: 12px; touch-action: pan-y; cursor: default; }
+  .strip i { flex: 1; min-width: 0; border-radius: 2px; background: var(--empty); }
+  .strip i.g { background: var(--g); }
+  .strip i.y { background: var(--y); }
+  .strip i.o { background: var(--o); }
+  .strip i.r { background: var(--r); }
+  .strip i.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .hint { min-height: 18px; margin-top: 4px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 12px 2px 0; font-size: 13px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend b { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  h2 { margin: 40px 0 0; font: 700 20px/1.2 var(--font-display); }
+  .incidents { margin-top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .incidents .none { margin: 0; padding: 18px; color: var(--muted); }
+  details + details { border-top: 1px solid var(--line); }
+  summary {
+    list-style: none; cursor: pointer; padding: 14px 18px;
+    display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary:focus-visible, .strip:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+  .i-title { font-weight: 500; }
+  .i-when { grid-column: 1; font-size: 13px; color: var(--muted); }
+  .badge {
+    grid-column: 2; grid-row: 1 / span 2; font-size: 13px; font-weight: 600;
+    padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+    border: 1.5px solid currentColor;
+  }
+  .badge.ongoing { color: var(--r); }
+  .badge.done { color: var(--g); }
+  .i-body { padding: 0 18px 16px; color: var(--muted); }
+  .i-body p { margin: 0 0 6px; max-width: 56ch; }
+
+  footer { margin-top: 36px; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  footer p { margin: 0 0 2px; }
+  footer strong { color: var(--ink); font-weight: 600; }
+  footer .stale { color: var(--o); font-weight: 600; }
+
+  @media (max-width: 420px) {
+    .row .name { font-size: 15px; }
+    .metric { padding: 16px 14px 10px; }
+    summary { padding: 12px 14px; }
+    .i-body { padding: 0 14px 14px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="site">Статус Phonebot</div>
+
+  <section class="hero" aria-live="polite">
+    <span class="dot" id="dot"></span>
+    <div>
+      <h1 id="headline">Проверяем…</h1>
+      <p class="lead" id="lead">Подключаемся к боту, это займёт несколько секунд.</p>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Показатели бота">
+    <div class="metric">
+      <div class="row"><span class="name">Нагрузка на сервер (Render)</span><span class="leader"></span><span class="val" id="v-load">—</span></div>
+      <div class="strip" id="s-load" role="img" aria-label="История нагрузки на сервер"></div>
+      <div class="hint" id="h-load"></div>
+    </div>
+    <div class="metric">
+      <div class="row"><span class="name">Задержка ответа</span><span class="leader"></span><span class="val" id="v-lat">—</span></div>
+      <div class="strip" id="s-lat" role="img" aria-label="История задержки ответа"></div>
+      <div class="hint" id="h-lat"></div>
+    </div>
+    <div class="metric">
+      <div class="row"><span class="name">Нагрузка на базу данных (Neon)</span><span class="leader"></span><span class="val" id="v-db">—</span></div>
+      <div class="strip" id="s-db" role="img" aria-label="История нагрузки на базу данных"></div>
+      <div class="hint" id="h-db"></div>
+    </div>
+  </section>
+  <div class="legend" aria-label="Что означают цвета">
+    <span><b style="background:var(--g)"></b>норма</span>
+    <span><b style="background:var(--y)"></b>повышенная</span>
+    <span><b style="background:var(--o)"></b>высокая</span>
+    <span><b style="background:var(--r)"></b>критичная или нет ответа</span>
+  </div>
+
+  <h2>Последние сбои</h2>
+  <div class="incidents" id="incidents"></div>
+
+  <footer>
+    <p>Время по Москве: <strong id="clock">—</strong></p>
+    <p>Статусы обновлены: <span id="updated">—</span></p>
+  </footer>
+</main>
+
+<script>
+"use strict";
+
+// ── Настройки ────────────────────────────────────────────────────────────
+// Адрес /status вашего бота на Render:
+const STATUS_URL = "https://phonebot-jyma.onrender.com/status";
+const REFRESH_MS = 15000;     // как часто обновлять данные
+const BARS = 48;              // полосок в каждой шкале
+const PER_BAR = 2;            // замеров на полоску (замер = 30 с, значит полоска = 1 минута)
+const FIRST_TIMEOUT = 25000;  // первый запрос ждём дольше: Render может «просыпаться»
+const TIMEOUT = 9000;
+const STALE_AFTER = 120;      // секунд: после этого данные считаются устаревшими
+// ─────────────────────────────────────────────────────────────────────────
+
+const TZ = "Europe/Moscow";
+const $ = (id) => document.getElementById(id);
+const LEVELS = ["g", "y", "o", "r"];
+
+const levelPct = (v) => (v == null ? 3 : v < 50 ? 0 : v < 75 ? 1 : v < 90 ? 2 : 3);
+const levelMs  = (v) => (v == null ? 3 : v < 200 ? 0 : v < 500 ? 1 : v < 1000 ? 2 : 3);
+
+const fmtTime = new Intl.DateTimeFormat("ru-RU", { timeZone: TZ, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+const fmtHM   = new Intl.DateTimeFormat("ru-RU", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false });
+const fmtDate = new Intl.DateTimeFormat("ru-RU", { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+
+function duration(sec) {
+  sec = Math.max(0, Math.round(sec));
+  if (sec < 60) return sec + " с";
+  const m = Math.round(sec / 60);
+  if (m < 60) return m + " мин";
+  const h = Math.floor(m / 60), r = m % 60;
+  return r ? h + " ч " + r + " мин" : h + " ч";
+}
+
+const METRICS = [
+  { key: "load", idx: 0, level: levelPct, text: (v) => (v == null ? "нет данных" : "нагрузка " + Math.round(v) + "%"), val: (v) => Math.round(v) + "%" },
+  { key: "lat",  idx: 1, level: levelMs,  text: (v) => (v == null ? "нет ответа" : Math.round(v) + " мс"),           val: (v) => Math.round(v) + " мс" },
+  { key: "db",   idx: 2, level: levelPct, text: (v) => (v == null ? "нет ответа" : "нагрузка " + Math.round(v) + "%"), val: (v) => Math.round(v) + "%" },
+];
+
+// Полоски: из замеров собираем BARS корзин; в корзине показываем худшее значение.
+function buildBars(data, m, failedBars) {
+  const hist = data ? data.history : [];
+  const step = data ? data.step : 30;
+  const end = data ? data.history_end : null;
+  const n = hist.length;
+  const bars = [];
+  for (let k = BARS - 1; k >= 0; k--) {
+    const hi = n - k * PER_BAR, lo = Math.max(0, hi - PER_BAR);
+    if (hi <= 0 || lo >= hi) { bars.push(null); continue; }
+    let worst = 0, value = -1, missing = false;
+    for (let i = lo; i < hi; i++) {
+      const v = hist[i][m.idx];
+      if (v == null) { missing = true; worst = 3; continue; }
+      worst = Math.max(worst, m.level(v));
+      value = Math.max(value, v);
+    }
+    bars.push({ level: worst, value: missing ? null : value, t: end - (n - hi) * step });
+  }
+  for (let i = 0; i < failedBars && i < BARS; i++) {
+    bars[BARS - 1 - i] = { level: 3, value: null, t: null };
+  }
+  return bars;
+}
+
+function renderStrip(m, bars) {
+  const strip = $("s-" + m.key);
+  strip.textContent = "";
+  bars.forEach((b, i) => {
+    const el = document.createElement("i");
+    if (b) el.className = LEVELS[b.level];
+    el.dataset.i = i;
+    strip.appendChild(el);
+  });
+  strip._bars = bars;
+  strip._metric = m;
+}
+
+function showHint(strip, index) {
+  const m = strip._metric, b = strip._bars && strip._bars[index];
+  const hint = $("h-" + m.key);
+  strip.querySelectorAll(".sel").forEach((e) => e.classList.remove("sel"));
+  if (!b) { hint.textContent = ""; return; }
+  strip.children[index].classList.add("sel");
+  const when = b.t ? fmtHM.format(new Date(b.t * 1000)) : "сейчас";
+  hint.textContent = when + ": " + m.text(b.value);
+}
+
+function wireStrip(id) {
+  const strip = $(id);
+  const pick = (e) => {
+    const r = strip.getBoundingClientRect();
+    return Math.min(BARS - 1, Math.max(0, Math.floor(((e.clientX - r.left) / r.width) * BARS)));
+  };
+  strip.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse") showHint(strip, pick(e)); });
+  strip.addEventListener("pointerleave", (e) => {
+    if (e.pointerType === "mouse") { $("h-" + strip._metric.key).textContent = ""; strip.querySelectorAll(".sel").forEach((x) => x.classList.remove("sel")); }
+  });
+  strip.addEventListener("click", (e) => showHint(strip, pick(e)));
+}
+
+// ── Состояние ────────────────────────────────────────────────────────────
+let data = null;          // последний успешный ответ
+let failures = 0;         // сколько запросов подряд не удалось
+let firstLoad = true;
+let downSince = null;
+
+try { downSince = Number(localStorage.getItem("ps_down_since")) || null; } catch (_) {}
+function saveDown(v) { try { v ? localStorage.setItem("ps_down_since", String(v)) : localStorage.removeItem("ps_down_since"); } catch (_) {} }
+
+async function load() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), firstLoad ? FIRST_TIMEOUT : TIMEOUT);
+  try {
+    const res = await fetch(STATUS_URL, { signal: ctrl.signal, cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    data = await res.json();
+    failures = 0;
+    if (downSince) { downSince = null; saveDown(null); }
+  } catch (_) {
+    failures++;
+    if (!downSince) { downSince = Date.now() / 1000; saveDown(downSince); }
+  } finally {
+    clearTimeout(timer);
+    firstLoad = false;
+  }
+  render();
+}
+
+function summary() {
+  if (failures > 0) {
+    return { lvl: 3, head: "Бот не отвечает",
+      lead: "Сервер бота недоступен: скорее всего, он перезапускается или у Render неполадки. Команды в Telegram пока не сработают, обычно это проходит за несколько минут." };
+  }
+  if (!data && firstLoad) {
+    return { lvl: -1, head: "Проверяем…", lead: "Подключаемся к боту, это займёт несколько секунд." };
+  }
+  const now = data && data.now;
+  if (!now) {
+    return { lvl: -1, head: "Собираем данные", lead: "Бот только что запустился. Первые показатели появятся через полминуты." };
+  }
+  if (!now.db_ok) return { lvl: 3, head: "Проблемы с базой данных", lead: "База данных не отвечает, поэтому большинство команд сейчас не работает." };
+  if (!now.tg_ok) return { lvl: 3, head: "Нет связи с Telegram", lead: "Бот не может связаться с Telegram, поэтому ответы не приходят." };
+  const worst = Math.max(levelPct(now.load), levelMs(now.tg_ms), levelPct(now.db_pct));
+  if (worst >= 3) return { lvl: 3, head: "Бот работает с перебоями", lead: "Нагрузка критичная, команды могут отвечать очень медленно или не отвечать вовсе." };
+  if (worst === 2) return { lvl: 2, head: "Бот работает медленнее обычного", lead: "Нагрузка высокая: ответ на команды может прийти с задержкой." };
+  if (worst === 1) return { lvl: 1, head: "Бот работает", lead: "Небольшая нагрузка, ответы могут приходить чуть медленнее." };
+  return { lvl: 0, head: "Всё работает", lead: "Бот отвечает на команды, база данных на связи." };
+}
+
+function render() {
+  const s = summary();
+  $("headline").textContent = s.head;
+  $("lead").textContent = s.lead;
+  $("dot").style.background = s.lvl < 0 ? "var(--empty)" : "var(--" + LEVELS[s.lvl] + ")";
+  document.title = (s.lvl >= 2 ? "⚠ " : "") + s.head + " — Phonebot";
+
+  const now = data && data.now;
+  const down = failures > 0;
+  const failedBars = down ? Math.max(1, Math.ceil((failures * REFRESH_MS) / 60000)) : 0;
+  const cur = {
+    load: now ? now.load : null,
+    lat: now ? (now.tg_ok ? now.tg_ms : null) : null,
+    db: now ? (now.db_ok ? now.db_pct : null) : null,
+  };
+  METRICS.forEach((m) => {
+    const bars = buildBars(data, m, failedBars);
+    renderStrip(m, bars);
+    $("h-" + m.key).textContent = "";
+    $("v-" + m.key).textContent = down ? "нет ответа" : (now ? (cur[m.key] == null ? "нет ответа" : m.val(cur[m.key])) : "—");
+  });
+  renderIncidents();
+  renderFooter();
+}
+
+function renderIncidents() {
+  const box = $("incidents");
+  box.textContent = "";
+  const list = [];
+  if (failures > 0 && downSince) {
+    list.push({ title: "Бот не отвечает", details: "Страница не получает ответа от бота. Как только он вернётся, здесь появится запись о простое.", started: downSince, resolved: null, live: true });
+  }
+  if (data) list.push(...data.incidents);
+  if (!list.length) {
+    const p = document.createElement("p");
+    p.className = "none";
+    p.textContent = "Сбоев за последнее время не было.";
+    box.appendChild(p);
+    return;
+  }
+  list.slice(0, 12).forEach((inc, idx) => {
+    const d = document.createElement("details");
+    if (inc.live || (idx === 0 && !inc.resolved)) d.open = true;
+    const sum = document.createElement("summary");
+    const t = document.createElement("span"); t.className = "i-title"; t.textContent = inc.title;
+    const w = document.createElement("span"); w.className = "i-when"; w.textContent = fmtDate.format(new Date(inc.started * 1000));
+    const b = document.createElement("span");
+    b.className = "badge " + (inc.resolved ? "done" : "ongoing");
+    b.textContent = inc.resolved ? "Устранено" : "Идёт сейчас";
+    sum.append(t, w, b);
+    const body = document.createElement("div"); body.className = "i-body";
+    const p1 = document.createElement("p"); p1.textContent = inc.details;
+    const p2 = document.createElement("p");
+    p2.textContent = inc.resolved
+      ? "Длилось " + duration(inc.resolved - inc.started) + ", завершилось в " + fmtHM.format(new Date(inc.resolved * 1000)) + "."
+      : "Идёт уже " + duration(Date.now() / 1000 - inc.started) + ".";
+    body.append(p1, p2);
+    d.append(sum, body);
+    box.appendChild(d);
+  });
+}
+
+function renderFooter() {
+  const u = $("updated");
+  u.textContent = "";
+  if (!data) { u.textContent = "ещё не получены"; return; }
+  u.append(fmtTime.format(new Date(data.generated_at * 1000)));
+  const age = Date.now() / 1000 - data.generated_at;
+  if (failures > 0 || age > STALE_AFTER) {
+    const s = document.createElement("span");
+    s.className = "stale";
+    s.textContent = " (данные устарели)";
+    u.appendChild(s);
+  }
+}
+
+function tickClock() { $("clock").textContent = fmtTime.format(new Date()); }
+
+["s-load", "s-lat", "s-db"].forEach(wireStrip);
+tickClock();
+setInterval(tickClock, 1000);
+setInterval(renderFooter, 5000);
+render();
+load();
+setInterval(load, REFRESH_MS);
+</script>
+</body>
+</html>
