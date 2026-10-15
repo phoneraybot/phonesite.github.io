@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Статус бота PhoneRay</title>
+<title>Статус Phonebot</title>
 <meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -134,7 +134,7 @@
 
   <section class="panel" aria-label="Показатели бота">
     <div class="metric">
-      <div class="row"><span class="name">Нагрузка на сервер</span><span class="leader"></span><span class="val" id="v-load">—</span></div>
+      <div class="row"><span class="name">Нагрузка на сервер (Render)</span><span class="leader"></span><span class="val" id="v-load">—</span></div>
       <div class="strip" id="s-load" role="img" aria-label="История нагрузки на сервер"></div>
       <div class="hint" id="h-load"></div>
     </div>
@@ -144,7 +144,7 @@
       <div class="hint" id="h-lat"></div>
     </div>
     <div class="metric">
-      <div class="row"><span class="name">Нагрузка на базу данных</span><span class="leader"></span><span class="val" id="v-db">—</span></div>
+      <div class="row"><span class="name">Нагрузка на базу данных (Neon)</span><span class="leader"></span><span class="val" id="v-db">—</span></div>
       <div class="strip" id="s-db" role="img" aria-label="История нагрузки на базу данных"></div>
       <div class="hint" id="h-db"></div>
     </div>
@@ -172,8 +172,7 @@
 // Адрес /status вашего бота на Render:
 const STATUS_URL = "https://phonebot-jyma.onrender.com/status";
 const REFRESH_MS = 15000;     // как часто обновлять данные
-const BARS = 48;              // полосок в каждой шкале
-const PER_BAR = 2;            // замеров на полоску (замер = 30 с, значит полоска = 1 минута)
+const BARS = 48;              // полосок в каждой шкале (один замер бота = одна полоска = 1 минута)
 const FIRST_TIMEOUT = 25000;  // первый запрос ждём дольше: Render может «просыпаться»
 const TIMEOUT = 9000;
 const STALE_AFTER = 120;      // секунд: после этого данные считаются устаревшими
@@ -200,34 +199,33 @@ function duration(sec) {
 }
 
 const METRICS = [
-  { key: "load", idx: 0, level: levelPct, text: (v) => (v == null ? "нет данных" : "нагрузка " + Math.round(v) + "%"), val: (v) => Math.round(v) + "%" },
-  { key: "lat",  idx: 1, level: levelMs,  text: (v) => (v == null ? "нет ответа" : Math.round(v) + " мс"),           val: (v) => Math.round(v) + " мс" },
-  { key: "db",   idx: 2, level: levelPct, text: (v) => (v == null ? "нет ответа" : "нагрузка " + Math.round(v) + "%"), val: (v) => Math.round(v) + "%" },
+  { key: "load", idx: 1, level: levelPct, text: (v) => (v == null ? "нет данных" : "нагрузка " + Math.round(v) + "%"), val: (v) => Math.round(v) + "%" },
+  { key: "lat",  idx: 2, level: levelMs,  text: (v) => (v == null ? "нет ответа" : Math.round(v) + " мс"),           val: (v) => Math.round(v) + " мс" },
+  { key: "db",   idx: 3, level: levelPct, text: (v) => (v == null ? "нет ответа" : "нагрузка " + Math.round(v) + "%"), val: (v) => Math.round(v) + "%" },
 ];
 
-// Полоски: из замеров собираем BARS корзин; в корзине показываем худшее значение.
+// Одна полоска = один замер бота. Цифра справа берётся из той же последней записи,
+// что и самая правая полоска, поэтому они всегда совпадают.
+// Запись истории: [время, нагрузка сервера %, задержка мс, нагрузка базы %].
 function buildBars(data, m, failedBars) {
   const hist = data ? data.history : [];
-  const step = data ? data.step : 30;
-  const end = data ? data.history_end : null;
-  const n = hist.length;
-  const bars = [];
-  for (let k = BARS - 1; k >= 0; k--) {
-    const hi = n - k * PER_BAR, lo = Math.max(0, hi - PER_BAR);
-    if (hi <= 0 || lo >= hi) { bars.push(null); continue; }
-    let worst = 0, value = -1, missing = false;
-    for (let i = lo; i < hi; i++) {
-      const v = hist[i][m.idx];
-      if (v == null) { missing = true; worst = 3; continue; }
-      worst = Math.max(worst, m.level(v));
-      value = Math.max(value, v);
-    }
-    bars.push({ level: worst, value: missing ? null : value, t: end - (n - hi) * step });
-  }
+  const bars = new Array(BARS).fill(null);
+  const take = hist.slice(-BARS);
+  take.forEach((h, i) => {
+    const v = h[m.idx];
+    bars[BARS - take.length + i] = { level: m.level(v), value: v, t: h[0] };
+  });
   for (let i = 0; i < failedBars && i < BARS; i++) {
     bars[BARS - 1 - i] = { level: 3, value: null, t: null };
   }
   return bars;
+}
+
+function current() {
+  const hist = data && data.history;
+  if (!hist || !hist.length) return null;
+  const h = hist[hist.length - 1];
+  return { load: h[1], lat: h[2], db: h[3] };
 }
 
 function renderStrip(m, bars) {
@@ -303,12 +301,13 @@ function summary() {
     return { lvl: -1, head: "Проверяем…", lead: "Подключаемся к боту, это займёт несколько секунд." };
   }
   const now = data && data.now;
-  if (!now) {
+  const cur = current();
+  if (!now || !cur) {
     return { lvl: -1, head: "Собираем данные", lead: "Бот только что запустился. Первые показатели появятся через полминуты." };
   }
   if (!now.db_ok) return { lvl: 3, head: "Проблемы с базой данных", lead: "База данных не отвечает, поэтому большинство команд сейчас не работает." };
   if (!now.tg_ok) return { lvl: 3, head: "Нет связи с Telegram", lead: "Бот не может связаться с Telegram, поэтому ответы не приходят." };
-  const worst = Math.max(levelPct(now.load), levelMs(now.tg_ms), levelPct(now.db_pct));
+  const worst = Math.max(levelPct(cur.load), levelMs(cur.lat), levelPct(cur.db));
   if (worst >= 3) return { lvl: 3, head: "Бот работает с перебоями", lead: "Нагрузка критичная, команды могут отвечать очень медленно или не отвечать вовсе." };
   if (worst === 2) return { lvl: 2, head: "Бот работает медленнее обычного", lead: "Нагрузка высокая: ответ на команды может прийти с задержкой." };
   if (worst === 1) return { lvl: 1, head: "Бот работает", lead: "Небольшая нагрузка, ответы могут приходить чуть медленнее." };
@@ -322,19 +321,14 @@ function render() {
   $("dot").style.background = s.lvl < 0 ? "var(--empty)" : "var(--" + LEVELS[s.lvl] + ")";
   document.title = (s.lvl >= 2 ? "⚠ " : "") + s.head + " — Phonebot";
 
-  const now = data && data.now;
+  const cur = current();
   const down = failures > 0;
   const failedBars = down ? Math.max(1, Math.ceil((failures * REFRESH_MS) / 60000)) : 0;
-  const cur = {
-    load: now ? now.load : null,
-    lat: now ? (now.tg_ok ? now.tg_ms : null) : null,
-    db: now ? (now.db_ok ? now.db_pct : null) : null,
-  };
   METRICS.forEach((m) => {
     const bars = buildBars(data, m, failedBars);
     renderStrip(m, bars);
     $("h-" + m.key).textContent = "";
-    $("v-" + m.key).textContent = down ? "нет ответа" : (now ? (cur[m.key] == null ? "нет ответа" : m.val(cur[m.key])) : "—");
+    $("v-" + m.key).textContent = down ? "нет ответа" : (cur ? (cur[m.key] == null ? "нет ответа" : m.val(cur[m.key])) : "—");
   });
   renderIncidents();
   renderFooter();
