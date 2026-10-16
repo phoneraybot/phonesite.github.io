@@ -198,6 +198,7 @@
   <footer>
     <p>Время по Москве: <strong id="clock">—</strong></p>
     <p>Статусы обновлены: <span id="updated">—</span></p>
+    <p id="err" class="stale" hidden></p>
   </footer>
 </main>
 
@@ -206,7 +207,7 @@
 
 // ── Настройки ────────────────────────────────────────────────────────────
 // Адрес /status вашего бота на Render:
-const STATUS_URL = "https://phonebot-jyma.onrender.com/status";
+const STATUS_URL = "https://YOUR-SERVICE.onrender.com/status";
 const REFRESH_MS = 15000;     // как часто обновлять данные
 const BARS = 60;              // полосок в каждой шкале (так же задано в боте)
 const FIRST_TIMEOUT = 25000;  // первый запрос ждём дольше: Render может «просыпаться»
@@ -262,6 +263,7 @@ let data = null;          // последний успешный ответ
 let failures = 0;         // сколько запросов подряд не удалось
 let firstLoad = true;
 let downSince = null;
+let lastError = "";       // почему не удалось получить данные (для подвала)
 let seq = 0;              // номер запроса: ответ на устаревший запрос (старый период) отбрасываем
 
 try { const r = Number(localStorage.getItem("ps_range")); if ([1, 6, 12, 24].includes(r)) range = r; } catch (_) {}
@@ -360,8 +362,11 @@ async function load() {
     const res = await fetch(STATUS_URL + "?range=" + range, { signal: ctrl.signal, cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     fresh = await res.json();
-  } catch (_) {
+  } catch (e) {
     failed = true;
+    lastError = e && e.name === "AbortError" ? "бот не ответил за " + Math.round((firstLoad ? FIRST_TIMEOUT : TIMEOUT) / 1000) + " с"
+      : e && String(e.message).startsWith("HTTP") ? "сервер ответил ошибкой (" + e.message + ")"
+      : "запрос не дошёл: неверный адрес бота или он не разрешает доступ с этого сайта (CORS)";
   } finally {
     clearTimeout(timer);
   }
@@ -401,6 +406,9 @@ function updateNote() {
 
 // ── Заголовок состояния ──────────────────────────────────────────────────
 function summary() {
+  if (STATUS_URL.includes("YOUR-SERVICE")) {
+    return { lvl: 3, head: "Не указан адрес бота", lead: "В файле index.html в строке STATUS_URL всё ещё стоит заглушка. Впишите адрес бота на Render и загрузите файл заново." };
+  }
   if (failures > 0) {
     return { lvl: 3, head: "Бот не отвечает",
       lead: "Сервер бота недоступен: скорее всего, он перезапускается или у Render неполадки. Команды в Telegram пока не сработают, обычно это проходит за несколько минут." };
@@ -491,6 +499,15 @@ function renderIncidents() {
 }
 
 function renderFooter() {
+  const err = $("err");
+  if (failures > 0 && lastError) {
+    let host = STATUS_URL;
+    try { host = new URL(STATUS_URL).host; } catch (_) {}
+    err.textContent = "Ошибка запроса к " + host + ": " + lastError + ".";
+    err.hidden = false;
+  } else {
+    err.hidden = true;
+  }
   const u = $("updated");
   u.textContent = "";
   if (!data) { u.textContent = "ещё не получены"; return; }
