@@ -3,19 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Статус бота PhoneRay</title>
+<title>Статус Phonebot</title>
 <meta name="color-scheme" content="light dark">
+<script>
+  // тема выбирается до первой отрисовки, чтобы не было вспышки
+  try { var t = localStorage.getItem("ps_theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root {
+    color-scheme: light;
     --bg: #edf0f3;
     --surface: #ffffff;
     --ink: #101b2a;
     --muted: #5b6877;
     --line: #d5dbe2;
     --empty: #dde2e8;
+    --seg: #e4e8ed;
     --g: #2db36a;
     --y: #e7c12f;
     --o: #f0862a;
@@ -24,18 +30,34 @@
     --font-display: "Unbounded", "Onest", system-ui, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
       --bg: #0e141b;
       --surface: #151d27;
       --ink: #e8edf3;
       --muted: #8d9aa8;
       --line: #263241;
       --empty: #223040;
+      --seg: #1d2733;
       --g: #35c479;
       --y: #ebc93f;
       --o: #f39a3f;
       --r: #eb5b5b;
     }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0e141b;
+    --surface: #151d27;
+    --ink: #e8edf3;
+    --muted: #8d9aa8;
+    --line: #263241;
+    --empty: #223040;
+    --seg: #1d2733;
+    --g: #35c479;
+    --y: #ebc93f;
+    --o: #f39a3f;
+    --r: #eb5b5b;
   }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -47,32 +69,45 @@
     padding: max(20px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
   }
   main { max-width: 640px; margin: 0 auto; }
+  button { font: inherit; color: inherit; }
 
-  .site { margin: 4px 0 28px; font-weight: 600; font-size: 15px; color: var(--muted); }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 24px; }
+  .site { font-weight: 600; font-size: 15px; color: var(--muted); }
+  .theme {
+    display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+    padding: 8px 14px 8px 12px; min-height: 40px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+    font-size: 14px; font-weight: 500;
+  }
+  .theme svg { width: 18px; height: 18px; flex: none; }
+  .theme:hover { border-color: var(--muted); }
+  .theme:focus-visible, .seg button:focus-visible, .strip:focus-visible, summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
   .hero { display: flex; gap: 14px; align-items: flex-start; }
   .dot { flex: none; width: 16px; height: 16px; border-radius: 50%; margin-top: 11px; background: var(--empty); }
-  h1 {
-    margin: 0;
-    font: 700 clamp(26px, 7.4vw, 36px)/1.15 var(--font-display);
-    letter-spacing: -0.01em;
-  }
+  h1 { margin: 0; font: 700 clamp(26px, 7.4vw, 36px)/1.15 var(--font-display); letter-spacing: -0.01em; }
   .lead { margin: 10px 0 0; color: var(--muted); max-width: 52ch; }
+  .lastcmd { margin: 14px 0 0 30px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .lastcmd strong { color: var(--ink); font-weight: 600; }
 
-  .panel {
-    margin-top: 28px;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 14px;
+  .toolbar { margin-top: 26px; }
+  .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; background: var(--seg); border-radius: 12px; }
+  .seg button {
+    min-height: 40px; border: 0; border-radius: 9px; background: transparent; cursor: pointer;
+    font-weight: 500; color: var(--muted);
   }
-  .metric { padding: 18px 18px 14px; }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+
+  .panel { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+  .panel.loading .strip { opacity: .45; }
+  .metric { padding: 18px 18px 12px; }
   .metric + .metric { border-top: 1px solid var(--line); }
   .row { display: flex; align-items: baseline; gap: 10px; }
   .row .name { font-weight: 500; }
   .row .leader { flex: 1; border-bottom: 2px dotted var(--line); transform: translateY(-4px); min-width: 12px; }
   .row .val { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-  .strip { display: flex; gap: 2px; height: 30px; margin-top: 12px; touch-action: pan-y; cursor: default; }
+  .strip { display: flex; gap: 2px; height: 30px; margin-top: 12px; touch-action: pan-y; cursor: default; transition: opacity .15s; }
   .strip i { flex: 1; min-width: 0; border-radius: 2px; background: var(--empty); }
   .strip i.g { background: var(--g); }
   .strip i.y { background: var(--y); }
@@ -84,6 +119,7 @@
   .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 12px 2px 0; font-size: 13px; color: var(--muted); }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend b { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .note { margin: 8px 2px 0; font-size: 13px; color: var(--muted); max-width: 60ch; }
 
   h2 { margin: 40px 0 0; font: 700 20px/1.2 var(--font-display); }
   .incidents { margin-top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
@@ -94,13 +130,12 @@
     display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center;
   }
   summary::-webkit-details-marker { display: none; }
-  summary:focus-visible, .strip:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+  summary:focus-visible { outline-offset: -2px; }
   .i-title { font-weight: 500; }
   .i-when { grid-column: 1; font-size: 13px; color: var(--muted); }
   .badge {
     grid-column: 2; grid-row: 1 / span 2; font-size: 13px; font-weight: 600;
-    padding: 3px 10px; border-radius: 999px; white-space: nowrap;
-    border: 1.5px solid currentColor;
+    padding: 3px 10px; border-radius: 999px; white-space: nowrap; border: 1.5px solid currentColor;
   }
   .badge.ongoing { color: var(--r); }
   .badge.done { color: var(--g); }
@@ -112,17 +147,22 @@
   footer strong { color: var(--ink); font-weight: 600; }
   footer .stale { color: var(--o); font-weight: 600; }
 
-  @media (max-width: 420px) {
+  @media (max-width: 480px) {
+    .strip { gap: 1px; }
     .row .name { font-size: 15px; }
     .metric { padding: 16px 14px 10px; }
     summary { padding: 12px 14px; }
     .i-body { padding: 0 14px 14px; }
+    .lastcmd { margin-left: 0; }
   }
 </style>
 </head>
 <body>
 <main>
-  <div class="site">Статус бота PhoneRay</div>
+  <div class="top">
+    <div class="site">Статус Phonebot</div>
+    <button class="theme" id="theme" type="button"></button>
+  </div>
 
   <section class="hero" aria-live="polite">
     <span class="dot" id="dot"></span>
@@ -131,30 +171,26 @@
       <p class="lead" id="lead">Подключаемся к боту, это займёт несколько секунд.</p>
     </div>
   </section>
+  <p class="lastcmd">Последняя обработанная команда: <strong id="lastcmd">—</strong></p>
 
-  <section class="panel" aria-label="Показатели бота">
-    <div class="metric">
-      <div class="row"><span class="name">Нагрузка на сервер</span><span class="leader"></span><span class="val" id="v-load">—</span></div>
-      <div class="strip" id="s-load" role="img" aria-label="История нагрузки на сервер"></div>
-      <div class="hint" id="h-load"></div>
+  <div class="toolbar">
+    <div class="seg" id="seg" role="group" aria-label="Период">
+      <button type="button" data-range="1">1 ч</button>
+      <button type="button" data-range="6">6 ч</button>
+      <button type="button" data-range="12">12 ч</button>
+      <button type="button" data-range="24">24 ч</button>
     </div>
-    <div class="metric">
-      <div class="row"><span class="name">Задержка ответа</span><span class="leader"></span><span class="val" id="v-lat">—</span></div>
-      <div class="strip" id="s-lat" role="img" aria-label="История задержки ответа"></div>
-      <div class="hint" id="h-lat"></div>
-    </div>
-    <div class="metric">
-      <div class="row"><span class="name">Нагрузка на базу данных</span><span class="leader"></span><span class="val" id="v-db">—</span></div>
-      <div class="strip" id="s-db" role="img" aria-label="История нагрузки на базу данных"></div>
-      <div class="hint" id="h-db"></div>
-    </div>
-  </section>
+  </div>
+
+  <section class="panel" id="panel" aria-label="Показатели бота"></section>
   <div class="legend" aria-label="Что означают цвета">
     <span><b style="background:var(--g)"></b>норма</span>
     <span><b style="background:var(--y)"></b>повышенная</span>
     <span><b style="background:var(--o)"></b>высокая</span>
-    <span><b style="background:var(--r)"></b>критичная</span>
+    <span><b style="background:var(--r)"></b>критичная или нет ответа</span>
+    <span><b style="background:var(--empty)"></b>нет данных</span>
   </div>
+  <p class="note" id="note"></p>
 
   <h2>Последние сбои</h2>
   <div class="incidents" id="incidents"></div>
@@ -170,20 +206,42 @@
 
 // ── Настройки ────────────────────────────────────────────────────────────
 // Адрес /status вашего бота на Render:
-const STATUS_URL = "https://phonebot-jyma.onrender.com/status";
+const STATUS_URL = "https://YOUR-SERVICE.onrender.com/status";
 const REFRESH_MS = 15000;     // как часто обновлять данные
-const BARS = 48;              // полосок в каждой шкале (один замер бота = одна полоска = 1 минута)
+const BARS = 60;              // полосок в каждой шкале (так же задано в боте)
 const FIRST_TIMEOUT = 25000;  // первый запрос ждём дольше: Render может «просыпаться»
 const TIMEOUT = 9000;
-const STALE_AFTER = 120;      // секунд: после этого данные считаются устаревшими
+const STALE_AFTER = 150;      // секунд: после этого данные считаются устаревшими
 // ─────────────────────────────────────────────────────────────────────────
 
 const TZ = "Europe/Moscow";
 const $ = (id) => document.getElementById(id);
 const LEVELS = ["g", "y", "o", "r"];
 
-const levelPct = (v) => (v == null ? 3 : v < 50 ? 0 : v < 75 ? 1 : v < 90 ? 2 : 3);
-const levelMs  = (v) => (v == null ? 3 : v < 200 ? 0 : v < 500 ? 1 : v < 1000 ? 2 : 3);
+// Пороги цветов: [зелёный до, жёлтый до, оранжевый до], дальше красный.
+const up = (a, b, c) => (v) => (v == null ? 3 : v < a ? 0 : v < b ? 1 : v < c ? 2 : 3);
+const levelPct   = up(50, 75, 90);          // нагрузка сервера, CPU, RAM, база
+const levelPing  = up(300, 700, 1500);      // пинг базы (как в /logs): включает установку соединения
+const levelTg    = up(300, 800, 2000);      // ответ Telegram API
+const levelQueue = up(5, 15, 40);           // сообщений в обработке одновременно
+const levelOk    = (v) => (v == null ? -1 : v >= 98 ? 0 : v >= 90 ? 1 : v >= 75 ? 2 : 3);   // чем больше, тем лучше
+
+const pct = (v) => Math.round(v) + "%";
+const pct1 = (v) => String(Math.round(v * 10) / 10).replace(".", ",") + "%";
+const ms = (v) => Math.round(v) + " мс";
+
+// idx — позиция значения в полоске: [начало, нет_данных, нагрузка, пинг, база, Telegram, очередь, CPU, RAM, успешных %]
+// bad — если значения нет при живом боте, это сбой (красная полоска); иначе просто «нет данных».
+const METRICS = [
+  { key: "ping",  idx: 3, name: "Задержка ответа",               short: "задержка ответа",     level: levelPing,  fmt: ms,   bad: true },
+  { key: "tg",    idx: 5, name: "Задержка Telegram",             short: "задержка Telegram",   level: levelTg,    fmt: ms,   bad: true },
+  { key: "ok",    idx: 9, name: "Успешных ответов",              short: "успешные ответы",     level: levelOk,    fmt: pct1, bad: false, empty: "нет команд" },
+  { key: "queue", idx: 6, name: "Очередь сообщений",             short: "очередь сообщений",   level: levelQueue, fmt: (v) => String(Math.round(v)), bad: false },
+  { key: "load",  idx: 2, name: "Нагрузка на сервер (Render)",   short: "нагрузка на сервер",  level: levelPct,   fmt: pct,  bad: true },
+  { key: "cpu",   idx: 7, name: "Нагрузка на CPU",               short: "нагрузка на CPU",     level: levelPct,   fmt: pct,  bad: false },
+  { key: "ram",   idx: 8, name: "Использование RAM",             short: "использование RAM",   level: levelPct,   fmt: pct,  bad: false },
+  { key: "db",    idx: 4, name: "Нагрузка на базу данных (Neon)", short: "нагрузка на базу",   level: levelPct,   fmt: pct,  bad: true },
+];
 
 const fmtTime = new Intl.DateTimeFormat("ru-RU", { timeZone: TZ, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 const fmtHM   = new Intl.DateTimeFormat("ru-RU", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false });
@@ -198,122 +256,171 @@ function duration(sec) {
   return r ? h + " ч " + r + " мин" : h + " ч";
 }
 
-const METRICS = [
-  { key: "load", idx: 1, level: levelPct, text: (v) => (v == null ? "нет данных" : "нагрузка " + Math.round(v) + "%"), val: (v) => Math.round(v) + "%" },
-  { key: "lat",  idx: 2, level: levelMs,  text: (v) => (v == null ? "нет ответа" : Math.round(v) + " мс"),           val: (v) => Math.round(v) + " мс" },
-  { key: "db",   idx: 3, level: levelPct, text: (v) => (v == null ? "нет ответа" : "нагрузка " + Math.round(v) + "%"), val: (v) => Math.round(v) + "%" },
-];
-
-// Одна полоска = один замер бота. Цифра справа берётся из той же последней записи,
-// что и самая правая полоска, поэтому они всегда совпадают.
-// Запись истории: [время, нагрузка сервера %, задержка мс, нагрузка базы %].
-function buildBars(data, m, failedBars) {
-  const hist = data ? data.history : [];
-  const bars = new Array(BARS).fill(null);
-  const take = hist.slice(-BARS);
-  take.forEach((h, i) => {
-    const v = h[m.idx];
-    bars[BARS - take.length + i] = { level: m.level(v), value: v, t: h[0] };
-  });
-  for (let i = 0; i < failedBars && i < BARS; i++) {
-    bars[BARS - 1 - i] = { level: 3, value: null, t: null };
-  }
-  return bars;
-}
-
-function current() {
-  const hist = data && data.history;
-  if (!hist || !hist.length) return null;
-  const h = hist[hist.length - 1];
-  return { load: h[1], lat: h[2], db: h[3] };
-}
-
-function renderStrip(m, bars) {
-  const strip = $("s-" + m.key);
-  strip.textContent = "";
-  bars.forEach((b, i) => {
-    const el = document.createElement("i");
-    if (b) el.className = LEVELS[b.level];
-    el.dataset.i = i;
-    strip.appendChild(el);
-  });
-  strip._bars = bars;
-  strip._metric = m;
-}
-
-function showHint(strip, index) {
-  const m = strip._metric, b = strip._bars && strip._bars[index];
-  const hint = $("h-" + m.key);
-  strip.querySelectorAll(".sel").forEach((e) => e.classList.remove("sel"));
-  if (!b) { hint.textContent = ""; return; }
-  strip.children[index].classList.add("sel");
-  const when = b.t ? fmtHM.format(new Date(b.t * 1000)) : "сейчас";
-  hint.textContent = when + ": " + m.text(b.value);
-}
-
-function wireStrip(id) {
-  const strip = $(id);
-  const pick = (e) => {
-    const r = strip.getBoundingClientRect();
-    return Math.min(BARS - 1, Math.max(0, Math.floor(((e.clientX - r.left) / r.width) * BARS)));
-  };
-  strip.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse") showHint(strip, pick(e)); });
-  strip.addEventListener("pointerleave", (e) => {
-    if (e.pointerType === "mouse") { $("h-" + strip._metric.key).textContent = ""; strip.querySelectorAll(".sel").forEach((x) => x.classList.remove("sel")); }
-  });
-  strip.addEventListener("click", (e) => showHint(strip, pick(e)));
-}
-
 // ── Состояние ────────────────────────────────────────────────────────────
+let range = 1;
 let data = null;          // последний успешный ответ
 let failures = 0;         // сколько запросов подряд не удалось
 let firstLoad = true;
 let downSince = null;
+let seq = 0;              // номер запроса: ответ на устаревший запрос (старый период) отбрасываем
 
+try { const r = Number(localStorage.getItem("ps_range")); if ([1, 6, 12, 24].includes(r)) range = r; } catch (_) {}
 try { downSince = Number(localStorage.getItem("ps_down_since")) || null; } catch (_) {}
 function saveDown(v) { try { v ? localStorage.setItem("ps_down_since", String(v)) : localStorage.removeItem("ps_down_since"); } catch (_) {} }
 
+// ── Тема ─────────────────────────────────────────────────────────────────
+const root = document.documentElement;
+const media = window.matchMedia("(prefers-color-scheme: dark)");
+const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+const effectiveTheme = () => root.dataset.theme || (media.matches ? "dark" : "light");
+function paintThemeButton() {
+  const dark = effectiveTheme() === "dark";
+  const btn = $("theme");
+  btn.innerHTML = (dark ? SUN : MOON) + "<span>" + (dark ? "Светлая тема" : "Тёмная тема") + "</span>";
+  btn.setAttribute("aria-label", dark ? "Включить светлую тему" : "Включить тёмную тему");
+}
+$("theme").addEventListener("click", () => {
+  const next = effectiveTheme() === "dark" ? "light" : "dark";
+  root.dataset.theme = next;
+  try { localStorage.setItem("ps_theme", next); } catch (_) {}
+  paintThemeButton();
+});
+media.addEventListener && media.addEventListener("change", paintThemeButton);
+
+// ── Построение шкал ──────────────────────────────────────────────────────
+function buildPanel() {
+  const panel = $("panel");
+  METRICS.forEach((m) => {
+    const box = document.createElement("div");
+    box.className = "metric";
+    const row = document.createElement("div");
+    row.className = "row";
+    const name = document.createElement("span"); name.className = "name"; name.textContent = m.name;
+    const leader = document.createElement("span"); leader.className = "leader";
+    const val = document.createElement("span"); val.className = "val"; val.id = "v-" + m.key; val.textContent = "—";
+    row.append(name, leader, val);
+    const strip = document.createElement("div");
+    strip.className = "strip"; strip.id = "s-" + m.key; strip.setAttribute("role", "img");
+    strip.setAttribute("aria-label", "История: " + m.short);
+    for (let i = 0; i < BARS; i++) strip.appendChild(document.createElement("i"));
+    const hint = document.createElement("div"); hint.className = "hint"; hint.id = "h-" + m.key;
+    box.append(row, strip, hint);
+    panel.appendChild(box);
+    wireStrip(strip, m);
+  });
+}
+
+function barState(m, bar) {
+  // → { level: 0..3 или -1 (серая), text }
+  if (!bar) return { level: -1, text: "нет данных" };
+  if (bar[1]) return { level: 3, text: "нет данных: бот не работал" };
+  const v = bar[m.idx];
+  if (v == null) return m.bad ? { level: 3, text: "нет ответа" } : { level: -1, text: m.empty || "нет данных" };
+  return { level: m.level(v), text: m.fmt(v) };
+}
+
+function barTime(bar) {
+  if (!bar) return "";
+  const start = bar[0] * 1000;
+  if (range === 1) return fmtHM.format(new Date(start));
+  const barSec = (data && data.bar_seconds) || range * 60;
+  const end = Math.min(start + barSec * 1000, data ? data.generated_at * 1000 : Infinity);
+  return (range >= 12 ? fmtDate : fmtHM).format(new Date(start)) + "–" + fmtHM.format(new Date(end));
+}
+
+function clearSel(strip) { strip.querySelectorAll(".sel").forEach((e) => e.classList.remove("sel")); }
+
+function showHint(strip, m, index) {
+  const hint = $("h-" + m.key);
+  clearSel(strip);
+  const bars = strip._bars;
+  if (!bars || !bars[index]) { hint.textContent = ""; return; }
+  strip.children[index].classList.add("sel");
+  hint.textContent = barTime(bars[index]) + ": " + barState(m, bars[index]).text;
+}
+
+function wireStrip(strip, m) {
+  const pick = (e) => {
+    const r = strip.getBoundingClientRect();
+    return Math.min(BARS - 1, Math.max(0, Math.floor(((e.clientX - r.left) / r.width) * BARS)));
+  };
+  strip.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse") showHint(strip, m, pick(e)); });
+  strip.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") { $("h-" + m.key).textContent = ""; clearSel(strip); } });
+  strip.addEventListener("click", (e) => showHint(strip, m, pick(e)));
+}
+
+// ── Загрузка данных ──────────────────────────────────────────────────────
 async function load() {
+  const mySeq = ++seq;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), firstLoad ? FIRST_TIMEOUT : TIMEOUT);
+  let fresh = null, failed = false;
   try {
-    const res = await fetch(STATUS_URL, { signal: ctrl.signal, cache: "no-store" });
+    const res = await fetch(STATUS_URL + "?range=" + range, { signal: ctrl.signal, cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
-    data = await res.json();
-    failures = 0;
-    if (downSince) { downSince = null; saveDown(null); }
+    fresh = await res.json();
   } catch (_) {
-    failures++;
-    if (!downSince) { downSince = Date.now() / 1000; saveDown(downSince); }
+    failed = true;
   } finally {
     clearTimeout(timer);
-    firstLoad = false;
   }
+  if (mySeq !== seq) return;      // пока ждали, период переключили — этот ответ уже не нужен
+  firstLoad = false;
+  if (failed) {
+    failures++;
+    if (!downSince) { downSince = Date.now() / 1000; saveDown(downSince); }
+  } else {
+    data = fresh;
+    data._local = Date.now() / 1000;   // когда получили: по нему считаем «сколько назад», не завися от часов устройства
+    failures = 0;
+    if (downSince) { downSince = null; saveDown(null); }
+  }
+  $("panel").classList.remove("loading");
   render();
 }
 
+function setRange(r) {
+  range = r;
+  try { localStorage.setItem("ps_range", String(r)); } catch (_) {}
+  $("seg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.range) === r)));
+  $("panel").classList.add("loading");
+  updateNote();
+  load();
+}
+$("seg").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-range]");
+  if (b && Number(b.dataset.range) !== range) setRange(Number(b.dataset.range));
+});
+
+function updateNote() {
+  $("note").textContent = range === 1
+    ? "Одна полоска — один замер раз в минуту. Число справа — значение последней полоски."
+    : "Одна полоска — " + range + " мин. Цвет и число показывают худшее значение за этот отрезок, число справа — значение последней полоски.";
+}
+
+// ── Заголовок состояния ──────────────────────────────────────────────────
 function summary() {
   if (failures > 0) {
     return { lvl: 3, head: "Бот не отвечает",
       lead: "Сервер бота недоступен: скорее всего, он перезапускается или у Render неполадки. Команды в Telegram пока не сработают, обычно это проходит за несколько минут." };
   }
-  if (!data && firstLoad) {
-    return { lvl: -1, head: "Проверяем…", lead: "Подключаемся к боту, это займёт несколько секунд." };
-  }
+  if (!data && firstLoad) return { lvl: -1, head: "Проверяем…", lead: "Подключаемся к боту, это займёт несколько секунд." };
   const now = data && data.now;
-  const cur = current();
-  if (!now || !cur) {
-    return { lvl: -1, head: "Собираем данные", lead: "Бот только что запустился. Первые показатели появятся через полминуты." };
-  }
+  if (!now) return { lvl: -1, head: "Собираем данные", lead: "Бот только что запустился. Первые показатели появятся через минуту." };
   if (!now.db_ok) return { lvl: 3, head: "Проблемы с базой данных", lead: "База данных не отвечает, поэтому большинство команд сейчас не работает." };
   if (!now.tg_ok) return { lvl: 3, head: "Нет связи с Telegram", lead: "Бот не может связаться с Telegram, поэтому ответы не приходят." };
-  const worst = Math.max(levelPct(cur.load), levelMs(cur.lat), levelPct(cur.db));
-  if (worst >= 3) return { lvl: 3, head: "Бот работает с перебоями", lead: "Нагрузка критичная, команды могут отвечать очень медленно или не отвечать вовсе." };
-  if (worst === 2) return { lvl: 2, head: "Бот работает медленнее обычного", lead: "Нагрузка высокая: ответ на команды может прийти с задержкой." };
+  const vals = { ping: now.ping_ms, tg: now.tg_ms, ok: now.success, queue: now.queue, load: now.load, cpu: now.cpu, ram: now.mem, db: now.db_pct };
+  const worst = Math.max(...METRICS.map((m) => m.level(vals[m.key])));
+  const bad = METRICS.filter((m) => m.level(vals[m.key]) >= 2).map((m) => m.short);
+  const where = bad.length ? " Что не в порядке: " + bad.slice(0, 3).join(", ") + (bad.length > 3 ? " и ещё " + (bad.length - 3) : "") + "." : "";
+  if (worst >= 3) return { lvl: 3, head: "Бот работает с перебоями", lead: "Нагрузка или задержки критичные, команды могут отвечать очень медленно или не отвечать." + where };
+  if (worst === 2) return { lvl: 2, head: "Бот работает медленнее обычного", lead: "Ответ на команды может прийти с задержкой." + where };
   if (worst === 1) return { lvl: 1, head: "Бот работает", lead: "Небольшая нагрузка, ответы могут приходить чуть медленнее." };
   return { lvl: 0, head: "Всё работает", lead: "Бот отвечает на команды, база данных на связи." };
 }
 
+// ── Отрисовка ────────────────────────────────────────────────────────────
 function render() {
   const s = summary();
   $("headline").textContent = s.head;
@@ -321,17 +428,29 @@ function render() {
   $("dot").style.background = s.lvl < 0 ? "var(--empty)" : "var(--" + LEVELS[s.lvl] + ")";
   document.title = (s.lvl >= 2 ? "⚠ " : "") + s.head + " — Phonebot";
 
-  const cur = current();
   const down = failures > 0;
-  const failedBars = down ? Math.max(1, Math.ceil((failures * REFRESH_MS) / 60000)) : 0;
+  const failedBars = down ? Math.max(1, Math.ceil((failures * REFRESH_MS) / (range === 1 ? 60000 : range * 60000))) : 0;
+  const barsData = (data && data.bars) || new Array(BARS).fill(null);
+
   METRICS.forEach((m) => {
-    const bars = buildBars(data, m, failedBars);
-    renderStrip(m, bars);
+    const strip = $("s-" + m.key);
+    const bars = barsData.slice(-BARS);
+    while (bars.length < BARS) bars.unshift(null);
+    // пока бот не отвечает, правые полоски красные (то, что страница видит прямо сейчас)
+    const shown = bars.map((b, i) => (down && i >= BARS - failedBars ? [b ? b[0] : 0, 1, null, null, null, null, null, null, null, null] : b));
+    shown.forEach((b, i) => {
+      const st = barState(m, b);
+      strip.children[i].className = st.level >= 0 ? LEVELS[st.level] : "";
+    });
+    strip._bars = shown;
+    clearSel(strip);
     $("h-" + m.key).textContent = "";
-    $("v-" + m.key).textContent = down ? "нет ответа" : (cur ? (cur[m.key] == null ? "нет ответа" : m.val(cur[m.key])) : "—");
+    const last = shown[BARS - 1];
+    $("v-" + m.key).textContent = down ? "нет ответа" : (last ? barState(m, last).text.replace("нет данных: бот не работал", "нет данных") : "—");
   });
   renderIncidents();
   renderFooter();
+  renderLastCommand();
 }
 
 function renderIncidents() {
@@ -364,7 +483,7 @@ function renderIncidents() {
     const p2 = document.createElement("p");
     p2.textContent = inc.resolved
       ? "Длилось " + duration(inc.resolved - inc.started) + ", завершилось в " + fmtHM.format(new Date(inc.resolved * 1000)) + "."
-      : "Идёт уже " + duration(Date.now() / 1000 - inc.started) + ".";
+      : "Идёт уже " + duration((inc.live ? Date.now() / 1000 : serverNow()) - inc.started) + ".";
     body.append(p1, p2);
     d.append(sum, body);
     box.appendChild(d);
@@ -376,7 +495,7 @@ function renderFooter() {
   u.textContent = "";
   if (!data) { u.textContent = "ещё не получены"; return; }
   u.append(fmtTime.format(new Date(data.generated_at * 1000)));
-  const age = Date.now() / 1000 - data.generated_at;
+  const age = Date.now() / 1000 - data._local;
   if (failures > 0 || age > STALE_AFTER) {
     const s = document.createElement("span");
     s.className = "stale";
@@ -385,9 +504,26 @@ function renderFooter() {
   }
 }
 
-function tickClock() { $("clock").textContent = fmtTime.format(new Date()); }
+function renderLastCommand() {
+  const el = $("lastcmd");
+  if (!data) { el.textContent = "—"; return; }
+  const t = data.last_command_at;
+  if (!t) { el.textContent = "с запуска бота команд ещё не было"; return; }
+  const clock = fmtTime.format(new Date(t * 1000)) + " МСК";
+  if (failures > 0) { el.textContent = clock + " (данные устарели)"; return; }
+  el.textContent = duration(serverNow() - t) + " назад, в " + clock;
+}
 
-["s-load", "s-lat", "s-db"].forEach(wireStrip);
+// «Сейчас» по часам бота: время ответа + сколько прошло с его получения
+function serverNow() { return data ? data.generated_at + (Date.now() / 1000 - data._local) : Date.now() / 1000; }
+
+function tickClock() { $("clock").textContent = fmtTime.format(new Date()); renderLastCommand(); }
+
+// ── Запуск ───────────────────────────────────────────────────────────────
+buildPanel();
+paintThemeButton();
+$("seg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.range) === range)));
+updateNote();
 tickClock();
 setInterval(tickClock, 1000);
 setInterval(renderFooter, 5000);
